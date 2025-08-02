@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Portal</title>
+    <!-- Use Inter font from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom, #dbeafe, #fff);
+        }
+        /* Custom styles for a fade-in animation */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+            opacity: 0;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Hide content until signed in */
+        .hidden {
+            display: none;
+        }
+        /* Custom table styling to fit the design */
+        .custom-table {
+            border-collapse: collapse;
+        }
+        .custom-table th, .custom-table td {
+            border: 2px solid #e5e7eb; /* Gray border */
+            padding: 12px;
+            text-align: left;
+        }
+        .custom-table th {
+            background-color: #f9fafb; /* Light gray header */
+        }
+
+        /* CSS for the Marquee effect */
+        .marquee {
+            white-space: nowrap;
+            overflow: hidden;
+            box-sizing: border-box;
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+
+        .marquee-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 20s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            position: relative;
+        }
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .user-message {
+            align-self: flex-end;
+            background-color: #4f46e5;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+        }
+        .ai-message {
+            align-self: flex-start;
+            background-color: #e5e7eb;
+            color: #1f2937;
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main container for the entire application -->
+    <div class="w-full max-w-4xl bg-white p-8 rounded-2xl shadow-xl border border-gray-100 transition-all duration-500">
+
+        <!-- Sign-in Interface (Initially visible) -->
+        <div id="signin-container" class="space-y-6">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-gray-800">Welcome to the Study Hub</h1>
+                <p class="mt-2 text-lg text-gray-600">Please sign in to access your content.</p>
+            </div>
+
+            <form id="signin-form" class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                    <input type="text" id="name" name="name" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border">
+                </div>
+
+                <div>
+                    <label for="gender" class="block text-sm font-medium text-gray-700">Gender</label>
+                    <select id="gender" name="gender" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border appearance-none">
+                        <option value="">Select your gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                        <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                </div>
+                
+                <div id="message-box" class="hidden p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm">
+                    <!-- Error messages will be displayed here -->
+                </div>
+
+                <button type="submit"
+                        class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
+                    Sign In
+                </button>
+            </form>
+        </div>
+
+        <!-- Main Content (Initially hidden) -->
+        <div id="content-container" class="hidden fade-in space-y-6">
+            
+            <!-- Marquee section with modern CSS animation -->
+            <div class="marquee w-full bg-blue-100 py-2 rounded-lg shadow-inner">
+                <p class="marquee-text text-xl font-semibold text-blue-800">
+                    Welcome to the official dashboard of our website <mark class="bg-yellow-200 text-gray-800">Rampur Verse</mark>. Here you can find resources, homework, and announcements to help you with your assignments.
+                </p>
+            </div>
+
+            <div class="flex justify-between items-center pb-4 border-b border-gray-200">
+                <h1 class="text-3xl font-bold text-gray-800">
+                    Hello, <span id="welcome-name"></span>!
+                </h1>
+                <div class="space-x-2">
+                    <button id="open-chat-button"
+                            class="py-2 px-4 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 transition-colors duration-200">
+                        Ask AI <i class="fas fa-robot"></i>
+                    </button>
+                    <button id="signout-button"
+                            class="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition-colors duration-200">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+            
+            <!-- User's new content starts here -->
+            <div class="text-center space-y-4">
+                <h2 class="text-4xl font-bold text-blue-600">Rampur Verse</h2>
+                <p class="text-lg text-pink-600">Rampur Verse is an official website created by students of Rampur using HTML code. This page provides useful and informative key points.</p>
+                <p class="text-2xl font-bold text-gray-800 mt-8">Home Page</p>
+                
+                <!-- Placeholder for the image. The original image was not available. -->
+                <div class="flex justify-center my-6">
+                    <img src="mailphoto.jpeg">
+                </div>
+            </div>
+
+            <div class="space-y-4 text-gray-700">
+                <h3 class="text-2xl font-bold text-blue-600 text-center">Table Using HTML</h3>
+                <h4 class="text-lg font-semibold text-center">SHREE RAM TULASI MODEL SECONDARY SCHOOL</h4>
+                <h5 class="text-md font-medium text-center">STUDENTS DETAILS</h5>
+
+                <table class="custom-table w-full max-w-2xl mx-auto rounded-lg shadow-md">
+                    <thead>
+                        <tr>
+                            <th>STUDENT NAME</th>
+                            <th>CLASS</th>
+                            <th>ROLL NO.</th>
+                            <th>ADDRESS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GOVINDA DEVKOTA</td>
+                            <td>NINE "A"</td>
+                            <td>FIFTEEN</td>
+                            <td>RAMPUR-6,PALPA</td>
+                        </tr>
+                        <tr>
+                            <td>ROHIT PATHAK</td>
+                            <td>NINE "A"</td>
+                            <td>TWENTY...</td>
+                            <td>RAMPUR-6,PALPA</td>
+                        </tr>
+                        <tr>
+                            <td>HARI KRISHNA BHATRRAI</td>
+                            <td>NINE "A"</td>
+                            <td>SIXTEEN</td>
+                            <td>RAMPUR-4,PALPA</td>
+                        </tr>
+                        <tr>
+                            <td>ANMOL BHATRRAI</td>
+                            <td>NINE "A"</td>
+                            <td>SIX</td>
+                            <td>RAMPUR-6,PALPA</td>
+                        </tr>
+                        <tr>
+                            <td>SACHIN SHRESTHA</td>
+                            <td>NINE "A"</td>
+                            <td>TWENTY...</td>
+                            <td>RAMPUR-5,PALPA</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Community Sharing Section -->
+            <div class="mt-8 pt-6 border-t border-gray-200 space-y-4">
+                <h3 class="text-2xl font-bold text-gray-800 text-center">Community Knowledge Exchange</h3>
+                <form id="post-form" class="flex flex-col space-y-2">
+                    <textarea id="post-input" class="w-full rounded-md border-gray-300 shadow-sm p-3 border" rows="3" placeholder="Share your knowledge with the community..."></textarea>
+                    <button type="submit" class="self-end py-2 px-4 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors duration-200">
+                        Post to Community
+                    </button>
+                </form>
+
+                <div id="posts-container" class="space-y-4 mt-6">
+                    <!-- Community posts will be loaded here -->
+                    <p id="posts-loading" class="text-center text-gray-500">Loading posts...</p>
+                </div>
+            </div>
+            
+            <!-- End of user's new content -->
+        </div>
+
+    </div>
+
+    <!-- AI Chat Modal -->
+    <div id="chat-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-chat-button">&times;</span>
+            <h2 class="text-2xl font-bold mb-4">Study AI Assistant</h2>
+            <div id="chat-messages" class="chat-messages">
+                <div class="ai-message">Hello! I'm your AI study assistant. Ask me anything about your studies.</div>
+            </div>
+            <form id="chat-form" class="mt-4 flex space-x-2">
+                <input type="text" id="chat-input" class="flex-grow rounded-md border-gray-300 shadow-sm p-3 border" placeholder="Type your question...">
+                <button type="submit" id="chat-send-button" class="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
+                    Send <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, userId;
+
+        // --- Firebase Initialization and Auth ---
+        const initFirebase = async () => {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            // Sign in the user
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Firebase Auth Error:", error);
+                document.getElementById('message-box').textContent = "Error signing in. Please try again.";
+                document.getElementById('message-box').classList.remove('hidden');
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    console.log("User signed in with UID:", userId);
+                    // Now that we have a user, we can set up the Firestore listener
+                    setupFirestoreListener();
+                } else {
+                    console.log("User is signed out.");
+                }
+            });
+        };
+        
+        // --- Firestore Real-time Listener ---
+        const setupFirestoreListener = () => {
+            if (!db) {
+                console.error("Firestore not initialized.");
+                return;
+            }
+            
+            // Set up a real-time listener for the community posts
+            const postsCollection = collection(db, `artifacts/${appId}/public/data/messages`);
+            const q = query(postsCollection, orderBy("timestamp", "desc"));
+
+            onSnapshot(q, (snapshot) => {
+                const postsContainer = document.getElementById('posts-container');
+                postsContainer.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const post = doc.data();
+                    const postElement = document.createElement('div');
+                    postElement.className = 'p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-100';
+                    postElement.innerHTML = `
+                        <p class="text-sm text-gray-400">By: ${post.name || 'Anonymous'}</p>
+                        <p class="mt-1 text-gray-800">${post.text}</p>
+                    `;
+                    postsContainer.appendChild(postElement);
+                });
+
+                if (snapshot.empty) {
+                    postsContainer.innerHTML = '<p class="text-center text-gray-500">No posts yet. Be the first to share something!</p>';
+                }
+            }, (error) => {
+                console.error("Error fetching posts:", error);
+                document.getElementById('posts-container').innerHTML = `<p class="text-center text-red-500">Error loading posts. Please try again.</p>`;
+            });
+        };
+
+        // --- App Logic and Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const signinContainer = document.getElementById('signin-container');
+            const contentContainer = document.getElementById('content-container');
+            const signinForm = document.getElementById('signin-form');
+            const signoutButton = document.getElementById('signout-button');
+            const welcomeNameSpan = document.getElementById('welcome-name');
+            const messageBox = document.getElementById('message-box');
+            const nameInput = document.getElementById('name');
+            const postForm = document.getElementById('post-form');
+            const postInput = document.getElementById('post-input');
+            const openChatButton = document.getElementById('open-chat-button');
+            const chatModal = document.getElementById('chat-modal');
+            const closeChatButton = document.getElementById('close-chat-button');
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
+            const chatMessagesContainer = document.getElementById('chat-messages');
+            const chatSendButton = document.getElementById('chat-send-button');
+
+            // Function to show an error message in the message box
+            const showMessage = (message) => {
+                messageBox.textContent = message;
+                messageBox.classList.remove('hidden');
+            };
+
+            // Function to hide the message box
+            const hideMessage = () => {
+                messageBox.textContent = '';
+                messageBox.classList.add('hidden');
+            };
+
+            // Check if the user is already signed in (from a previous session)
+            const checkSignInStatus = () => {
+                const userName = localStorage.getItem('userName');
+                if (userName) {
+                    welcomeNameSpan.textContent = userName;
+                    signinContainer.classList.add('hidden');
+                    contentContainer.classList.remove('hidden');
+                    initFirebase();
+                } else {
+                    signinContainer.classList.remove('hidden');
+                    contentContainer.classList.add('hidden');
+                }
+            };
+
+            // Handle the sign-in form submission
+            signinForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                hideMessage();
+
+                const name = nameInput.value.trim();
+                const gender = document.getElementById('gender').value;
+
+                if (!name || gender === "") {
+                    showMessage('Please enter your name and select a gender.');
+                    return;
+                }
+
+                localStorage.setItem('userName', name);
+                localStorage.setItem('userGender', gender);
+                
+                welcomeNameSpan.textContent = name;
+                signinContainer.classList.add('hidden');
+                contentContainer.classList.remove('hidden');
+                contentContainer.classList.add('fade-in');
+                initFirebase();
+            });
+
+            // Handle the sign-out button click
+            signoutButton.addEventListener('click', () => {
+                localStorage.removeItem('userName');
+                localStorage.removeItem('userGender');
+                contentContainer.classList.add('hidden');
+                signinContainer.classList.remove('hidden');
+                signinForm.reset();
+            });
+
+            // Handle community post form submission
+            postForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const postText = postInput.value.trim();
+                const userName = localStorage.getItem('userName');
+
+                if (postText === "") {
+                    return;
+                }
+                
+                if (!db || !userId) {
+                    console.error("Firestore not initialized or user not signed in.");
+                    return;
+                }
+
+                try {
+                    await addDoc(collection(db, `artifacts/${appId}/public/data/messages`), {
+                        name: userName,
+                        text: postText,
+                        timestamp: serverTimestamp(),
+                        userId: userId
+                    });
+                    postInput.value = ''; // Clear the input after posting
+                } catch (error) {
+                    console.error("Error adding document: ", error);
+                }
+            });
+
+            // Handle AI chat modal
+            openChatButton.addEventListener('click', () => {
+                chatModal.style.display = 'flex';
+            });
+            closeChatButton.addEventListener('click', () => {
+                chatModal.style.display = 'none';
+            });
+            window.addEventListener('click', (e) => {
+                if (e.target === chatModal) {
+                    chatModal.style.display = 'none';
+                }
+            });
+
+            // Handle AI chat form submission
+            chatForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const userPrompt = chatInput.value.trim();
+                if (userPrompt === "") return;
+
+                // Add user message to chat history
+                const userMessageElement = document.createElement('div');
+                userMessageElement.className = 'user-message';
+                userMessageElement.textContent = userPrompt;
+                chatMessagesContainer.appendChild(userMessageElement);
+
+                // Add loading indicator
+                const loadingElement = document.createElement('div');
+                loadingElement.className = 'ai-message text-gray-400';
+                loadingElement.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Thinking...';
+                chatMessagesContainer.appendChild(loadingElement);
+                chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+
+                chatInput.value = '';
+                chatSendButton.disabled = true;
+
+                try {
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: userPrompt }] });
+                    const payload = { contents: chatHistory };
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    
+                    let response;
+                    for (let i = 0; i < 5; i++) {
+                        response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (response.ok) break;
+                        await new Promise(res => setTimeout(res, Math.pow(2, i) * 1000));
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`API call failed with status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const aiResponse = result.candidates[0].content.parts[0].text;
+                        const aiMessageElement = document.createElement('div');
+                        aiMessageElement.className = 'ai-message';
+                        aiMessageElement.textContent = aiResponse;
+                        chatMessagesContainer.appendChild(aiMessageElement);
+                    } else {
+                        throw new Error('Unexpected API response structure.');
+                    }
+                } catch (error) {
+                    console.error("AI Chat Error:", error);
+                    const errorElement = document.createElement('div');
+                    errorElement.className = 'ai-message text-red-500';
+                    errorElement.textContent = 'Sorry, an error occurred. Please try again.';
+                    chatMessagesContainer.appendChild(errorElement);
+                } finally {
+                    loadingElement.remove();
+                    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+                    chatSendButton.disabled = false;
+                }
+            });
+
+            // Initial check on page load
+            checkSignInStatus();
+        });
+    </script>
+</body>
+</html>
